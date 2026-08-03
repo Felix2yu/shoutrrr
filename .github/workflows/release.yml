@@ -11,7 +11,6 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_OWNER: ${{ toLowerCase(github.repository_owner) }}
 
 jobs:
   build:
@@ -45,11 +44,15 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
 
+      - name: Compute lowercase image owner
+        id: img-owner
+        run: echo "owner=${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]' | sed 's/^/owner=/' >> "$GITHUB_OUTPUT"
+
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
-          username: ${{ env.IMAGE_OWNER }}
+          username: ${{ steps.img-owner.outputs.owner }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push Docker images
@@ -59,12 +62,12 @@ jobs:
           push: true
           platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm64
           tags: |
-            ghcr.io/${{ env.IMAGE_OWNER }}/shoutrrr:${{ github.ref_name }}
-            ghcr.io/${{ env.IMAGE_OWNER }}/shoutrrr:latest
-            ghcr.io/${{ env.IMAGE_OWNER }}/shoutrrr:amd64-latest
-            ghcr.io/${{ env.IMAGE_OWNER }}/shoutrrr:i386-latest
-            ghcr.io/${{ env.IMAGE_OWNER }}/shoutrrr:armhf-latest
-            ghcr.io/${{ env.IMAGE_OWNER }}/shoutrrr:arm64v8-latest
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:${{ github.ref_name }}
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:latest
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:amd64-latest
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:i386-latest
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:armhf-latest
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:arm64v8-latest
           labels: |
             org.opencontainers.image.source=${{ github.repositoryUrl }}
 
