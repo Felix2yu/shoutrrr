@@ -47,7 +47,7 @@ jobs:
 
       - name: Execute goreleaser
         run: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} CGO_ENABLED=0 goreleaser --debug --clean
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} CGO_ENABLED=0 goreleaser --clean
 
   docker-build:
     name: Build Docker image (${{ matrix.suffix }})
