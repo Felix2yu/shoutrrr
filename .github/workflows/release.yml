@@ -13,21 +13,17 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build:
-    name: Build Shoutrrr
+  go-release:
+    name: Build Shoutrrr binary
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
         uses: actions/checkout@v7
 
-      - uses: arnested/go-version-action@v2
-        id: go-version
-
-      - name: Set up Go ${{ steps.go-version.outputs.latest }}
+      - name: Set up Go 1.26
         uses: actions/setup-go@v7
-        id: go
         with:
-          go-version: ${{ steps.go-version.outputs.latest }}
+          go-version: 1.26
           check-latest: true
 
       - name: Build
@@ -41,36 +37,6 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Compute lowercase image owner
-        id: img-owner
-        run: echo "owner=${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]' | sed 's/^/owner=/' >> "$GITHUB_OUTPUT"
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ steps.img-owner.outputs.owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker images
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          push: true
-          platforms: linux/amd64,linux/386,linux/arm/v6,linux/arm64
-          tags: |
-            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:${{ github.ref_name }}
-            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:latest
-            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:amd64-latest
-            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:i386-latest
-            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:armhf-latest
-            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:arm64v8-latest
-          labels: |
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
-
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
@@ -81,4 +47,85 @@ jobs:
 
       - name: Execute goreleaser
         run: |
-          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} CGO_ENABLED=0 goreleaser --debug --rm-dist
+          GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} CGO_ENABLED=0 goreleaser --debug --clean
+
+  docker-build:
+    name: Build Docker image (${{ matrix.suffix }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - platform: linux/amd64
+            runner: ubuntu-latest
+            suffix: amd64
+          - platform: linux/arm64
+            runner: ubuntu-24.04-arm
+            suffix: arm64v8
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Compute lowercase image owner
+        id: img-owner
+        run: |
+          echo "owner=${OWNER,,}" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ steps.img-owner.outputs.owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          platforms: ${{ matrix.platform }}
+          tags: |
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:${{ matrix.suffix }}-${{ github.ref_name }}
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:${{ matrix.suffix }}-latest
+          labels: |
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+
+  docker-manifest:
+    name: Merge Docker manifest
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - name: Compute lowercase image owner
+        id: img-owner
+        run: |
+          echo "owner=${OWNER,,}" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ steps.img-owner.outputs.owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create manifest for version
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:${{ github.ref_name }} \
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:amd64-${{ github.ref_name }} \
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:arm64v8-${{ github.ref_name }}
+
+      - name: Create manifest for latest
+        run: |
+          docker buildx imagetools create \
+            -t ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:latest \
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:amd64-latest \
+            ghcr.io/${{ steps.img-owner.outputs.owner }}/shoutrrr:arm64v8-latest
