@@ -37,6 +37,10 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
+      - name: Clean up codecov artifacts
+        run: |
+          rm -f codecov codecov.SHA256SUM codecov.SHA256SUM.sig
+
       - name: Install GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
