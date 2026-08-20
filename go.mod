@@ -1,6 +1,6 @@
 module github.com/containrrr/shoutrrr
 
-go 1.26.0
+go 1.27.0
 
 require (
 	github.com/AdaLogics/go-fuzz-headers v0.0.0-20240806141605-e8a1dd7889d6
@@ -11,6 +11,7 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
+	golang.org/x/net v0.57.0
 	golang.org/x/oauth2 v0.36.0
 )
 
