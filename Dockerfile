@@ -5,6 +5,7 @@ ARG TARGETARCH
 
 WORKDIR /src
 COPY . .
+RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/shoutrrr ./shoutrrr
 
 FROM alpine:3.24 AS alpine
