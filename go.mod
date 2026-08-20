@@ -11,16 +11,12 @@ require (
 	github.com/onsi/gomega v1.42.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
-	golang.org/x/net v0.57.0
+	golang.org/x/net v0.58.0
 	golang.org/x/oauth2 v0.36.0
 )
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
-	golang.org/x/net v0.58.0
-)
-
-require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect

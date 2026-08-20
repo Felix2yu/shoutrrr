@@ -27,9 +27,7 @@ jobs:
           check-latest: true
 
       - name: Build
-        run: |
-          go mod tidy
-          CGO_ENABLED=0 go build -v .
+        run: CGO_ENABLED=0 go build -v .
 
       - name: Test
         run: CGO_ENABLED=0 go test -v -coverprofile=coverage.out -covermode=atomic ./...
